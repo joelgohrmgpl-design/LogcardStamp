@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trade-In Auto Input Stamped</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .container { max-width: 900px; margin: auto; display: grid; grid-template-columns: 1fr 420px; gap: 20px; }
+    .left { }
+    .right { border-left: 1px solid #eee; padding-left: 16px; }
+    .field { margin-bottom: 12px; }
+    label { font-weight: bold; display: block; margin-bottom: 4px; }
+    input, textarea { width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box }
+    #pdfViewer { width: 100%; height: 680px; border: 1px solid #000; background: #fafafa }
+    button { padding: 10px 14px; border-radius: 6px; border: none; cursor: pointer; }
+    .primary { background: #2563eb; color: white; }
+    .muted { background: #f3f4f6; }
+    .small { font-size: 13px }
+    .note { font-size: 13px; color: #555 }
+  </style>
+
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#2563eb" />
+
+</head>
+<body>
+  <div class="container">
+    <div class="left">
+      <h2>Upload LogCard PDF (Auto Stamped)</h2>
+      <input type="file" id="pdfUpload" accept="application/pdf" />
+      <div id="pdfViewer">No PDF loaded</div>
+      <p class="note">Tip: The app will stamp the entered fields as plain text onto the <strong>bottom-left</strong> of the first page and produce a downloadable edited PDF.</p>
+      <div style="margin-top:12px">
+        <button id="stampBtn" class="primary" disabled>Stamp & Download PDF</button>
+        <button id="resetBtn" class="muted small">Reset</button>
+      </div>
+    </div>
+
+    <div class="right">
+      <h3>Key In Details</h3>
+
+      <div class="field"><label>Trade in by</label><input id="name" placeholder="e.g. Name"></div>
+      <div class="field"><label>Trade in Price</label><input id="price" placeholder="e.g. $ Trade in price - Overtrade = $$"></div>
+      <div class="field"><label>Overtrade</label><input id="overtrade" placeholder="e.g. $"></div>
+      <div class="field"><label>Trade from</label><input id="tradefrom" placeholder="e.g. Make and Model"></div>
+      <div class="field"><label>Come In Date</label><input id="date" type="date"></div>
+      <div class="field"><label>Mileage</label><input id="mileage" placeholder="e.g. 88K"></div>
+      <div class="field"><label>Subject Repair</label><input id="repair" placeholder="e.g. $"></div>
+      <div class="field"><label>Key</label><input id="key" placeholder="e.g. 1"></div>
+      <div class="field"><label>Number Retention</label><input id="retain" placeholder="e.g. Yes(carplate)/No"></div>
+
+      <h4 style="margin-top:14px">Preview text (will be stamped)</h4>
+      <textarea id="previewText" rows="8" readonly></textarea>
+    </div>
+  </div>
+
+  <!-- pdf-lib from unpkg -->
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <script>
+    let originalPdfBytes = null;
+    let originalBlobUrl = null;
+
+    const pdfUpload = document.getElementById('pdfUpload');
+    const pdfViewer = document.getElementById('pdfViewer');
+    const stampBtn = document.getElementById('stampBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const previewText = document.getElementById('previewText');
+
+    const fields = ['name','price','overtrade','tradefrom','date','mileage','repair','key','retain'];
+
+    function buildStampString() {
+      const vals = {
+        'Trade in by:': document.getElementById('name').value || '',
+        'Trade in Price:': document.getElementById('price').value || '',
+        'Overtrade:': document.getElementById('overtrade').value || '',
+        'Trade from:': document.getElementById('tradefrom').value || '',
+        'Come In Date:': document.getElementById('date').value || '',
+        'Mileage:': document.getElementById('mileage').value || '',
+        'Subject Repair:': document.getElementById('repair').value || '',
+        'Key:': document.getElementById('key').value || '',
+        'Number Retention:': document.getElementById('retain').value || ''
+      };
+
+      return Object.entries(vals).map(([k,v]) => `${k} ${v}`).join('\n');
+    }
+
+    function updatePreview() {
+      previewText.value = buildStampString();
+    }
+
+    fields.forEach(id => document.getElementById(id).addEventListener('input', updatePreview));
+
+    pdfUpload.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      originalPdfBytes = await file.arrayBuffer();
+      if (originalBlobUrl) URL.revokeObjectURL(originalBlobUrl);
+      originalBlobUrl = URL.createObjectURL(file);
+      pdfViewer.innerHTML = `<iframe src="${originalBlobUrl}" width="100%" height="100%"></iframe>`;
+      stampBtn.disabled = false;
+    });
+
+    resetBtn.addEventListener('click', () => {
+      fields.forEach(id => document.getElementById(id).value = '');
+      updatePreview();
+    });
+
+    stampBtn.addEventListener('click', async () => {
+      if (!originalPdfBytes) return alert('Please upload a PDF first.');
+      stampBtn.disabled = true;
+      stampBtn.textContent = 'Processing...';
+      try {
+        const pdfDoc = await PDFLib.PDFDocument.load(originalPdfBytes);
+        const pages = pdfDoc.getPages();
+        const firstPage = pages[0];
+        const { width, height } = firstPage.getSize();
+
+        // Use a standard font
+        const helveticaFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+        const fontSize = 10;
+
+        const lines = buildStampString().split('\n');
+
+        // Starting position: bottom-left with small margin
+        const marginLeft = 69.52;
+	const stratY = 617.88 + 14;
+        // compute vertical start: we draw lines upward from bottom margin + fontSize
+        let y = 120; // 40 points from bottom
+
+        // Draw each line on first page only
+        for (let i = 0; i < lines.length; i++) {
+          firstPage.drawText(lines[i], {
+            x: marginLeft,
+            y: y + (lines.length - 1 - i) * (fontSize + 2),
+            size: fontSize,
+            font: helveticaFont
+          });
+        }
+
+        const modifiedPdfBytes = await pdfDoc.save();
+        const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+
+        // trigger download
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Stamped.pdf';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error(err);
+        alert('Failed to stamp PDF: ' + (err.message || err));
+      } finally {
+        stampBtn.disabled = false;
+        stampBtn.textContent = 'Stamp & Download PDF';
+      }
+    });
+
+    // init preview
+    updatePreview();
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('service-worker.js').catch(function (err) {
+          console.error('SW registration failed:', err);
+        });
+      });
+    }
+  </script>
+
+</body>
+</html>
