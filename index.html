@@ -7,8 +7,14 @@
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; }
     .container { max-width: 900px; margin: auto; display: grid; grid-template-columns: 1fr 420px; gap: 20px; }
+    @media (max-width: 800px) {
+      .container { grid-template-columns: 1fr; }
+    }
     .left { }
     .right { border-left: 1px solid #eee; padding-left: 16px; }
+    @media (max-width: 800px) {
+      .right { border-left: none; padding-left: 0; margin-top: 20px; }
+    }
     .field { margin-bottom: 12px; }
     label { font-weight: bold; display: block; margin-bottom: 4px; }
     input, textarea { width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box }
@@ -52,11 +58,11 @@
 
       <div class="field">
         <label>Stamp Page:</label>
-        <div style="display:flex; gap:12px; margin-top:4px;">
-          <label style="display:flex; align-items:center; gap:4px; padding:6px 10px; border:1px solid #ccc; border-radius:6px; cursor:pointer; background:#f9f9f9;">
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:4px;">
+          <label style="flex:1 1 150px; display:flex; align-items:center; gap:4px; padding:6px 10px; border:1px solid #ccc; border-radius:6px; cursor:pointer; background:#f9f9f9;">
             <input type="radio" name="stampPage" value="first" checked> OneMotoring Log
           </label>
-          <label style="display:flex; align-items:center; gap:4px; padding:6px 10px; border:1px solid #ccc; border-radius:6px; cursor:pointer; background:#f9f9f9;">
+          <label style="flex:1 1 150px; display:flex; align-items:center; gap:4px; padding:6px 10px; border:1px solid #ccc; border-radius:6px; cursor:pointer; background:#f9f9f9;">
             <input type="radio" name="stampPage" value="last"> LTA Log
           </label>
         </div>
