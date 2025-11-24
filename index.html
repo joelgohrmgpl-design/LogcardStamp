@@ -30,7 +30,7 @@
       <h2>Upload LogCard PDF (Auto Stamped)</h2>
       <input type="file" id="pdfUpload" accept="application/pdf" />
       <div id="pdfViewer">No PDF loaded</div>
-      <p class="note">Tip: The app will stamp the entered fields as plain text onto the <strong>bottom-left</strong> of the first page and produce a downloadable edited PDF.</p>
+      <p class="note">Tip: The app will stamp the entered fields as plain text onto the bottom-left of the selected page and produce a downloadable edited PDF.</p>
       <div style="margin-top:12px">
         <button id="stampBtn" class="primary" disabled>Stamp & Download PDF</button>
         <button id="resetBtn" class="muted small">Reset</button>
@@ -49,6 +49,18 @@
       <div class="field"><label>Subject Repair</label><input id="repair" placeholder="e.g. $"></div>
       <div class="field"><label>Key</label><input id="key" placeholder="e.g. 1"></div>
       <div class="field"><label>Number Retention</label><input id="retain" placeholder="e.g. Yes(carplate)/No"></div>
+
+      <div class="field">
+        <label>Stamp Page:</label>
+        <div style="display:flex; gap:12px; margin-top:4px;">
+          <label style="display:flex; align-items:center; gap:4px; padding:6px 10px; border:1px solid #ccc; border-radius:6px; cursor:pointer; background:#f9f9f9;">
+            <input type="radio" name="stampPage" value="first" checked> OneMotoring Log
+          </label>
+          <label style="display:flex; align-items:center; gap:4px; padding:6px 10px; border:1px solid #ccc; border-radius:6px; cursor:pointer; background:#f9f9f9;">
+            <input type="radio" name="stampPage" value="last"> LTA Log
+          </label>
+        </div>
+      </div>
 
       <h4 style="margin-top:14px">Preview text (will be stamped)</h4>
       <textarea id="previewText" rows="8" readonly></textarea>
@@ -103,6 +115,7 @@
 
     resetBtn.addEventListener('click', () => {
       fields.forEach(id => document.getElementById(id).value = '');
+      document.querySelector('input[name="stampPage"][value="first"]').checked = true;
       updatePreview();
     });
 
@@ -113,24 +126,20 @@
       try {
         const pdfDoc = await PDFLib.PDFDocument.load(originalPdfBytes);
         const pages = pdfDoc.getPages();
-        const firstPage = pages[0];
-        const { width, height } = firstPage.getSize();
 
-        // Use a standard font
+        const selectedPage = document.querySelector('input[name="stampPage"]:checked').value;
+        const targetPage = selectedPage === 'last' ? pages[pages.length - 1] : pages[0];
+        const { width, height } = targetPage.getSize();
+
         const helveticaFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
         const fontSize = 10;
-
         const lines = buildStampString().split('\n');
 
-        // Starting position: bottom-left with small margin
         const marginLeft = 69.52;
-	const stratY = 617.88 + 14;
-        // compute vertical start: we draw lines upward from bottom margin + fontSize
-        let y = 120; // 40 points from bottom
+        let y = 120;
 
-        // Draw each line on first page only
         for (let i = 0; i < lines.length; i++) {
-          firstPage.drawText(lines[i], {
+          targetPage.drawText(lines[i], {
             x: marginLeft,
             y: y + (lines.length - 1 - i) * (fontSize + 2),
             size: fontSize,
@@ -142,7 +151,6 @@
         const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
 
-        // trigger download
         const a = document.createElement('a');
         a.href = url;
         a.download = 'Stamped.pdf';
@@ -159,7 +167,6 @@
       }
     });
 
-    // init preview
     updatePreview();
   </script>
 
