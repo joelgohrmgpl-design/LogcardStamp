@@ -59,11 +59,11 @@
       <div class="field">
         <label>Stamp Page:</label>
         <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:4px;">
-          <label style="flex:1 1 150px; display:flex; align-items:center; gap:4px; padding:6px 10px; border:1px solid #ccc; border-radius:6px; cursor:pointer; background:#f9f9f9;">
-            <input type="radio" name="stampPage" value="first" checked> OneMotoring Log
+          <label style="flex:1 1 150px; display:flex; align-items:center; gap:4px; padding:4px 8px; border:1px solid #ccc; border-radius:6px; cursor:pointer; background:#f9f9f9; font-size:14px;">
+            <input type="radio" name="stampPage" value="first" checked style="width:14px; height:14px;"> OneMotoring Log
           </label>
-          <label style="flex:1 1 150px; display:flex; align-items:center; gap:4px; padding:6px 10px; border:1px solid #ccc; border-radius:6px; cursor:pointer; background:#f9f9f9;">
-            <input type="radio" name="stampPage" value="last"> LTA Log
+          <label style="flex:1 1 150px; display:flex; align-items:center; gap:4px; padding:4px 8px; border:1px solid #ccc; border-radius:6px; cursor:pointer; background:#f9f9f9; font-size:14px;">
+            <input type="radio" name="stampPage" value="last" style="width:14px; height:14px;"> LTA Log
           </label>
         </div>
       </div>
@@ -87,13 +87,20 @@
 
     const fields = ['name','price','overtrade','tradefrom','date','mileage','repair','key','retain'];
 
+    // ✅ DATE FORMAT FIX (DD/MM/YYYY)
+    function formatDate(value) {
+      if (!value) return '';
+      const [y, m, d] = value.split('-');
+      return `${d}/${m}/${y}`;
+    }
+
     function buildStampString() {
       const vals = {
         'Trade in by:': document.getElementById('name').value || '',
         'Trade in Price:': document.getElementById('price').value || '',
         'Overtrade:': document.getElementById('overtrade').value || '',
         'Trade from:': document.getElementById('tradefrom').value || '',
-        'Come In Date:': document.getElementById('date').value || '',
+        'Come In Date:': formatDate(document.getElementById('date').value),   // <-- UPDATED
         'Mileage:': document.getElementById('mileage').value || '',
         'Subject Repair:': document.getElementById('repair').value || '',
         'Key:': document.getElementById('key').value || '',
